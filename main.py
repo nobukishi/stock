@@ -60,16 +60,17 @@ def check_trend3(owarine_map):
     date_list1 = list(owarine_map.values())
     date_list25 = date_list1[:25]
     mean25 = statistics.mean(date_list25)
-    print(mean25)
+    #print(mean25)
     if one_kakaku < mean25:
         return False
     return True
     
     
     
+    
 
 def main():
-    owarine_map=get_owarine(1377)
+    owarine_map=get_owarine(8609)
 #print(owarine_map)
     if check_trend2(owarine_map)==False:
         print('トレンド２に失敗')
@@ -77,12 +78,12 @@ def main():
     if check_trend3(owarine_map)==False:
         print('トレンド3に失敗')
         return False
+    print('合格')
     
 main()
-owarine_map=get_owarine(1377)
-check =check_trend3(owarine_map)
+owarine_map=get_owarine(8609)
+#check =check_trend3(owarine_map)
 #print(check)
-    
     
     
     

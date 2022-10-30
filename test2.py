@@ -22,7 +22,7 @@ while True:
         elem_a = elem_h3.find_element(By.XPATH,'td')  
         print(elem_h3.text,elem_a.text)
     next_link = driver.find_element(By.CLASS_NAME,'pnnext')
-     driver.get(next_link.get_attribute('href'))
+    driver.get(next_link.get_attribute('href'))
    
     if i > 4:
         break
