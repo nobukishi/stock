@@ -12,9 +12,10 @@ end = dt.date.today()
 
 #データ取得
 df = web.DataReader(ticker_symbol_dr, data_source='yahoo', start=start,end=end)
-#2列目に銘柄コード追加
-df.insert(0, "code", ticker_symbol, allow_duplicates=False)
+#print(df)
 #csv保存
 #df.to_csv( os.path.dirname(__file__) + '\y_stock_data_'+ ticker_symbol + '.csv')
 df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-print(df['macd'])
+df[["Open", "High", "Low", "Close", "macd", "macdsignal"]].tail()
+end = df.iloc[-1,6]
+print(end)
