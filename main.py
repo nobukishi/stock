@@ -132,12 +132,8 @@ def check_macd(macdhist):
 def main(code):
     owarine_map=get_owarine(code)
     macd = get_macdhist(code)
-<<<<<<< Updated upstream
-    if get_margin_ratio(code) >= 1:
-=======
     margin_ratio = get_margin_ratio(code)
     if margin_ratio == None or margin_ratio >= 1:
->>>>>>> Stashed changes
         print(margin_ratio)
         return 
     if check_trend1(owarine_map)==False:
