@@ -16,6 +16,8 @@ options.add_argument('--headless')
 #driver = webdriver.Chrome('./chromedriver')
 driver = webdriver.Chrome(options=options)
 
+#信用倍率を取得
+
 #終値を数日前取得
 def get_owarine(code):
     driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
@@ -91,23 +93,51 @@ def check_trend2(owarine_map):
     #print(mean25)
     if one_kakaku < mean25:
         return False
-    return True            
+    return True          
 
-#ＭＡＣＤヒストグラムがプラスか
+#ネックラインは合格か（当日を含まない過去５日間の終値ベースの高値を当日の終値で抜く）  
+def check_neckline(owarine_map):
+    date_list=list(owarine_map.keys())
+    date_list.sort(reverse=True)
+    #print(date_list)
+    one_kakaku = owarine_map[date_list[0]]
+    two_kakaku = owarine_map[date_list[1]]
+    three_kakaku = owarine_map[date_list[2]]
+    fore_kakaku = owarine_map[date_list[3]]
+    five_kakaku = owarine_map[date_list[4]]
+    six_kakaku = owarine_map[date_list[5]]
+    #print(one_kakaku)
+    if one_kakaku < two_kakaku:
+        return False
+    if one_kakaku < three_kakaku:
+        return False 
+    if one_kakaku < fore_kakaku:
+        return False 
+    if one_kakaku < five_kakaku:
+        return False 
+    if one_kakaku < six_kakaku:
+        return False 
+    return True    
+
+
+#モーメンタムは合格か（ＭＡＣＤヒストグラムがプラス）
 def check_macd(macdhist):
     macd = macdhist
     if macd < 0:
         return False
     return True
 
-def main():
-    owarine_map=get_owarine(6632)
-    macd = get_macdhist(6632)
+def main(code):
+    owarine_map=get_owarine(code)
+    macd = get_macdhist(code)
     if check_trend1(owarine_map)==False:
         print('トレンド1に失敗')
         return False
     if check_trend2(owarine_map)==False:
         print('トレンド2に失敗')
+        return False
+    if check_neckline(owarine_map)==False:
+        print('ネックライン失敗')
         return False
     if check_macd(macd) ==False:
         print('macdに失敗')
@@ -115,12 +145,8 @@ def main():
     print('合格')
     
     
-main()
+main(6364)
 
-#check =check_trend3(owarine_map)
-    
-#print(check_trend3(owarine_map))
 
-    
 
 
