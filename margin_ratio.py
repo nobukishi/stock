@@ -26,5 +26,10 @@ def get_margin_ratio(code):
     #print(elem_tr)       
     elem_td_list= elem_tr.find_elements(By.XPATH,'td')
     elem_td = elem_td_list[3].text
-    margin_ratio = float(elem_td.replace('倍',''))
-    return margin_ratio
+    try:
+        margin_ratio = float(elem_td.replace('倍',''))
+        return margin_ratio
+    except:
+        return None
+            
+                

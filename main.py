@@ -20,6 +20,7 @@ driver = webdriver.Chrome(options=options)
 
 #終値を数日前取得
 def get_owarine(code):
+    print(dt.datetime.now())
     driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
     div = driver.find_element(By.ID,'stock_kabuka_table')
     elem_table1= div.find_element(By.CLASS_NAME, "stock_kabuka0")
@@ -42,6 +43,7 @@ def get_owarine(code):
         #print(elem_th2.text,elem_tds2[3].text)
         kakaku = elem_tds2[3].text
         owarine_map[elem_th2.text]=float(kakaku.replace(',',''))    
+    print(dt.datetime.now())
     return owarine_map
 
 
@@ -130,7 +132,12 @@ def check_macd(macdhist):
 def main(code):
     owarine_map=get_owarine(code)
     macd = get_macdhist(code)
+<<<<<<< Updated upstream
     if get_margin_ratio(code) >= 1:
+=======
+    margin_ratio = get_margin_ratio(code)
+    if margin_ratio == None or margin_ratio >= 1:
+>>>>>>> Stashed changes
         print(margin_ratio)
         return 
     if check_trend1(owarine_map)==False:
@@ -147,9 +154,17 @@ def main(code):
         return False
     print('合格')
     
-    
-main(6364)
 
+    
+
+
+
+with open('./gold_list.csv')as f:
+    for s_line in f.readlines():
+        code = s_line.strip()
+        print(code)
+        main(code)
+      
 
 
 
