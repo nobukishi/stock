@@ -9,7 +9,7 @@ import statistics
 import datetime as dt
 import pandas_datareader.data as web
 import talib as ta
-
+from margin_ratio import get_margin_ratio
 
 options = Options()
 options.add_argument('--headless')
@@ -130,6 +130,10 @@ def check_macd(macdhist):
 def main(code):
     owarine_map=get_owarine(code)
     macd = get_macdhist(code)
+    margin_ratio = get_margin_ratio(code)
+    if margin_ratio >= 1:
+        print(margin_ratio)
+        return 
     if check_trend1(owarine_map)==False:
         print('トレンド1に失敗')
         return False

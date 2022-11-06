@@ -14,18 +14,17 @@ options.add_argument('--headless')
 driver = webdriver.Chrome(options=options)
 
 #信用倍率を取得
-
-#終値を数日前取得
-driver.get(f'https://kabutan.jp/stock/kabuka?code=8609')
-div = driver.find_element(By.ID,'main')
-elem_table1= div.find_element(By.ID, "stockinfo_i3")
- 
-margin_ratio = []
-    
-for elem_tr1 in elem_table1.find_elements(By.XPATH,'//tbody/tr'):
-        elem_th1 = elem_tr1.find_elements(By.XPATH,'td')
-        #elem_tds1 = elem_tr1.find_elements(By.XPATH,'td')   
-       
-        kakaku = elem_th1[3].text
-        margin_ratio.append(kakaku)
-        print(margin_ratio)   
+def get_margin_ratio(code):
+    #終値を数日前取得
+    driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
+    div = driver.find_element(By.ID,'main')
+    elem_table1= div.find_element(By.ID, "stockinfo_i3")
+        
+    elem_tr_list = elem_table1.find_elements(By.XPATH,'table/tbody/tr')
+    elem_tr = elem_tr_list[0]
+            #elem_tds1 = elem_tr1.find_elements(By.XPATH,'td')   
+    #print(elem_tr)       
+    elem_td_list= elem_tr.find_elements(By.XPATH,'td')
+    elem_td = elem_td_list[3].text
+    margin_ratio = float(elem_td.replace('倍',''))
+    return margin_ratio
