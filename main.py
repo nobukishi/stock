@@ -16,11 +16,18 @@ options.add_argument('--headless')
 #driver = webdriver.Chrome('./chromedriver')
 driver = webdriver.Chrome(options=options)
 
-#信用倍率を取得
+#最新のＰＥＧを取得
+def get_peg(code):
+    driver.get(f'https://minkabu.jp/stock/{code}') 
+    elem_tr_list = driver.find_elements(By.XPATH,'//*[@id="sh_field_body"]/div/div/div/div/div[2]/div/div[2]/dl/div/div[1]/div[2]/table/tbody/tr[4]/td')
+    elem_tr = elem_tr_list[0].text
+    peg = float(elem_tr.replace('倍',''))
+    return peg
+
 
 #終値を数日前取得
 def get_owarine(code):
-    print(dt.datetime.now())
+    #print(dt.datetime.now())
     driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
     div = driver.find_element(By.ID,'stock_kabuka_table')
     elem_table1= div.find_element(By.CLASS_NAME, "stock_kabuka0")
@@ -43,7 +50,7 @@ def get_owarine(code):
         #print(elem_th2.text,elem_tds2[3].text)
         kakaku = elem_tds2[3].text
         owarine_map[elem_th2.text]=float(kakaku.replace(',',''))    
-    print(dt.datetime.now())
+    #print(dt.datetime.now())
     return owarine_map
 
 
@@ -133,8 +140,12 @@ def main(code):
     owarine_map=get_owarine(code)
     macd = get_macdhist(code)
     margin_ratio = get_margin_ratio(code)
+    peg = get_peg(code)
+    if peg >= 1.1:
+        print('PEGが'+str(peg)+'のため投資不可')
+        return
     if margin_ratio == None or margin_ratio >= 1:
-        print(margin_ratio)
+        print('信用倍率が'+str(margin_ratio)+'のため投資不可')
         return 
     if check_trend1(owarine_map)==False:
         print('トレンド1に失敗')
