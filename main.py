@@ -18,61 +18,70 @@ driver = webdriver.Chrome(options=options)
 
 #最新のＰＥＧを取得
 def get_peg(code):
-    driver.get(f'https://minkabu.jp/stock/{code}') 
-    elem_tr_list = driver.find_elements(By.XPATH,'//*[@id="sh_field_body"]/div/div/div/div/div[2]/div/div[2]/dl/div/div[1]/div[2]/table/tbody/tr[4]/td')
-    elem_tr = elem_tr_list[0].text
-    peg = float(elem_tr.replace('倍',''))
-    return peg
-
+    try:
+        driver.get(f'https://minkabu.jp/stock/{code}') 
+        elem_tr_list = driver.find_elements(By.XPATH,'//*[@id="sh_field_body"]/div/div/div/div/div[2]/div/div[2]/dl/div/div[1]/div[2]/table/tbody/tr[4]/td')
+        elem_tr = elem_tr_list[0].text
+        peg = float(elem_tr.replace('倍',''))
+        return peg
+    except:
+        return None
+    
 
 #終値を数日前取得
 def get_owarine(code):
     #print(dt.datetime.now())
-    driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
-    div = driver.find_element(By.ID,'stock_kabuka_table')
-    elem_table1= div.find_element(By.CLASS_NAME, "stock_kabuka0")
-    elem_table2= div.find_element(By.CLASS_NAME, "stock_kabuka_dwm")
-    
-    owarine_map={}
-#直近１日目を取得するのにforを使わずに取得し、２日目以降とつなげたい
-    #当日（１日目のみ）
-    for elem_tr1 in elem_table1.find_elements(By.XPATH,'tbody/tr'):
-        elem_th1 = elem_tr1.find_element(By.XPATH,'th')
-        elem_tds1 = elem_tr1.find_elements(By.XPATH,'td')   
-        #print(elem_th1.text,elem_tds1[3].text)
-        kakaku = elem_tds1[3].text
-        owarine_map[elem_th1.text]=float(kakaku.replace(',',''))   
+    try:
+        driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
+        div = driver.find_element(By.ID,'stock_kabuka_table')
+        elem_table1= div.find_element(By.CLASS_NAME, "stock_kabuka0")
+        elem_table2= div.find_element(By.CLASS_NAME, "stock_kabuka_dwm")
+        
+        owarine_map={}
+    #直近１日目を取得するのにforを使わずに取得し、２日目以降とつなげたい
+        #当日（１日目のみ）
+        for elem_tr1 in elem_table1.find_elements(By.XPATH,'tbody/tr'):
+            elem_th1 = elem_tr1.find_element(By.XPATH,'th')
+            elem_tds1 = elem_tr1.find_elements(By.XPATH,'td')   
+            #print(elem_th1.text,elem_tds1[3].text)
+            kakaku = elem_tds1[3].text
+            owarine_map[elem_th1.text]=float(kakaku.replace(',',''))   
 
-    #２日目以降
-    for elem_tr2 in elem_table2.find_elements(By.XPATH,'tbody/tr'):
-        elem_th2 = elem_tr2.find_element(By.XPATH,'th')
-        elem_tds2 = elem_tr2.find_elements(By.XPATH,'td')   
-        #print(elem_th2.text,elem_tds2[3].text)
-        kakaku = elem_tds2[3].text
-        owarine_map[elem_th2.text]=float(kakaku.replace(',',''))    
-    #print(dt.datetime.now())
-    return owarine_map
+        #２日目以降
+        for elem_tr2 in elem_table2.find_elements(By.XPATH,'tbody/tr'):
+            elem_th2 = elem_tr2.find_element(By.XPATH,'th')
+            elem_tds2 = elem_tr2.find_elements(By.XPATH,'td')   
+            #print(elem_th2.text,elem_tds2[3].text)
+            kakaku = elem_tds2[3].text
+            owarine_map[elem_th2.text]=float(kakaku.replace(',',''))    
+        #print(dt.datetime.now())
+        return owarine_map
+    except:
+        return None
 
 
 #当日のmacdを取得
 def get_macdhist(code):
-    ticker_symbol=code
-    ticker_symbol_dr=str(ticker_symbol) + ".T"
+    try:
+        ticker_symbol=code
+        ticker_symbol_dr=str(ticker_symbol) + ".T"
 
-    #2022-01-01以降の株価取得
-    start='2022-01-01'
-    end = dt.date.today()
+        #2022-01-01以降の株価取得
+        start='2022-01-01'
+        end = dt.date.today()
 
-    #データ取得
-    df = web.DataReader(ticker_symbol_dr, data_source='yahoo', start=start,end=end)
-    #print(df)
-    #csv保存
-    #df.to_csv( os.path.dirname(__file__) + '\y_stock_data_'+ ticker_symbol + '.csv')
-    df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-    df[["Open", "High", "Low", "Close", "macd", "macdsignal"]].tail()
-    macdhist = df.iloc[-1,8]
-    return macdhist
-    
+        #データ取得
+        df = web.DataReader(ticker_symbol_dr, data_source='yahoo', start=start,end=end)
+        #print(df)
+        #csv保存
+        #df.to_csv( os.path.dirname(__file__) + '\y_stock_data_'+ ticker_symbol + '.csv')
+        df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
+        df[["Open", "High", "Low", "Close", "macd", "macdsignal"]].tail()
+        macdhist = df.iloc[-1,8]
+        return macdhist
+    except:
+        return None
+        
 
 #トレンド１が合格しているか
 def check_trend1(owarine_map):
@@ -141,12 +150,12 @@ def main(code):
     macd = get_macdhist(code)
     margin_ratio = get_margin_ratio(code)
     peg = get_peg(code)
-    if peg >= 1.1:
+    if peg == None or peg>= 1.1:
         print('PEGが'+str(peg)+'のため投資不可')
-        return
+        return False
     if margin_ratio == None or margin_ratio >= 1:
         print('信用倍率が'+str(margin_ratio)+'のため投資不可')
-        return 
+        return False
     if check_trend1(owarine_map)==False:
         print('トレンド1に失敗')
         return False
@@ -159,19 +168,28 @@ def main(code):
     if check_macd(macd) ==False:
         print('macdに失敗')
         return False
-    print('合格')
+    #print(code)
+    return True
+   
     
-
-    
-
-
-
+#main(7267)
+interval = 1
+buy_list =[]
 with open('./gold_list.csv')as f:
     for s_line in f.readlines():
         code = s_line.strip()
+        sleep(interval)
         print(code)
-        main(code)
-      
+        if main(code)==True:
+            buy_list.append(code)
+    print(buy_list)
+     
+    
+        
+       
+
+
+
 
 
 
