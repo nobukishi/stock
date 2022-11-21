@@ -9,6 +9,7 @@ import statistics
 import datetime as dt
 import pandas_datareader.data as web
 import talib as ta
+
 from margin_ratio import get_margin_ratio
 
 options = Options()
@@ -145,7 +146,9 @@ def check_macd(macdhist):
         return False
     return True
 
-def main(code):
+
+#買いシグナルの判定
+def decision_buy(code):
     owarine_map=get_owarine(code)
     macd = get_macdhist(code)
     margin_ratio = get_margin_ratio(code)
@@ -170,22 +173,68 @@ def main(code):
         return False
     #print(code)
     return True
+
+
+#銘柄名を取得
+def get_stock_name(code):
+    driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
+    div = driver.find_element(By.ID,'stockinfo_i0')
+    elem_table3= div.find_element(By.CLASS_NAME, "si_i1_1")
+
+    for elem_h2 in elem_table3.find_elements(By.XPATH,'h2'):
+        l = elem_h2.text
+        stock_name=(l[4:])
+        return stock_name
+
+
+# buy_lists =['1802']
+# for code in buy_lists:  
+#     if decision_buy(code)==True:
+#         for buy_list in buy_lists:
+#             buy_code_detail = []
+#             stock_name =get_stock_name(buy_list)
+#             buy_day = str(dt.date.today())
+#             now = dt.datetime.now()
+#             d = now.date().strftime('%y/%m/%d')#’ｎｏｗ’の日付の表記を変更
+#             buy_price = get_owarine(code)[d] 
+#             buy_code_detail.append(stock_name)
+#             buy_code_detail.append(buy_list) 
+#             buy_code_detail.append(buy_day)
+#             buy_code_detail.append(buy_price)
+            
+          
+      
+
+          
+#             print(buy_code_detail)
+          
+    
    
-    
-#main(7267)
+            
 interval = 1
-buy_list =[]
 with open('./gold_list.csv')as f:
-    for s_line in f.readlines():
-        code = s_line.strip()
-        sleep(interval)
-        print(code)
-        if main(code)==True:
-            buy_list.append(code)
-    print(buy_list)
-     
-    
+     for s_line in f.readlines():
+         code = s_line.strip()
+         sleep(interval)
+         print(code)
+         if decision_buy(code)==True:
+            buy_lists = []
+            buy_lists.append(code)
+            for buy_list in buy_lists:
+                buy_code_detail = []
+                stock_name =get_stock_name(buy_list)
+                buy_day = str(dt.date.today())
+                now = dt.datetime.now()
+                d = now.date().strftime('%y/%m/%d')#’ｎｏｗ’の日付の表記を変更
+                buy_price = get_owarine(code)[d] 
+                buy_code_detail.append(stock_name)
+                buy_code_detail.append(buy_list) 
+                buy_code_detail.append(buy_day)
+                buy_code_detail.append(buy_price)
+            print(buy_code_detail)
         
+#     print(buy_lists)
+ 
        
 
 
