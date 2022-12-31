@@ -1,239 +1,96 @@
-from webbrowser import Konqueror
-from selenium import webdriver
-from time import sleep
-import chromedriver_binary
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-import statistics
 import datetime as dt
-import pandas_datareader.data as web
-import talib as ta
 
 from margin_ratio import get_margin_ratio
+from db import add_item,get_items
+import db
+import gyakudaisangen
+import daisangen
+import crawler
 
-options = Options()
-options.add_argument('--headless')
-#driver = webdriver.Chrome('./chromedriver')
-driver = webdriver.Chrome(options=options)
+# def get_latest_owarine(code):
+#     owarine_map = crawler.get_owarine(code)
+#     date_list = list(owarine_map.keys())
+#     #print(date_list)
+#     #date_list.sort()
+#     d = date_list[0]
+#     print(d)
+#     return owarine_map[d]
 
-#最新のＰＥＧを取得
-def get_peg(code):
-    try:
-        driver.get(f'https://minkabu.jp/stock/{code}') 
-        elem_tr_list = driver.find_elements(By.XPATH,'//*[@id="sh_field_body"]/div/div/div/div/div[2]/div/div[2]/dl/div/div[1]/div[2]/table/tbody/tr[4]/td')
-        elem_tr = elem_tr_list[0].text
-        peg = float(elem_tr.replace('倍',''))
-        return peg
-    except:
-        return None
-    
+# def save_buy_lists():
+#     for code in buy_lists:
+       
+#         stock_name = crawler.get_stock_name(code)
+#         buy_day = str(dt.date.today())
+#         buy_price = get_latest_owarine(code)
+#         item ={
+#             'code':code,
+#             'stock_name':stock_name,
+#             'buy_day':buy_day,
+#             'buy_price':buy_price
+#         }
+#         try:
+#             add_item(item)
+#         except Exception as e:
+#             print(e)
 
-#終値を数日前取得
-def get_owarine(code):
-    #print(dt.datetime.now())
-    try:
-        driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
-        div = driver.find_element(By.ID,'stock_kabuka_table')
-        elem_table1= div.find_element(By.CLASS_NAME, "stock_kabuka0")
-        elem_table2= div.find_element(By.CLASS_NAME, "stock_kabuka_dwm")
-        
-        owarine_map={}
-    #直近１日目を取得するのにforを使わずに取得し、２日目以降とつなげたい
-        #当日（１日目のみ）
-        for elem_tr1 in elem_table1.find_elements(By.XPATH,'tbody/tr'):
-            elem_th1 = elem_tr1.find_element(By.XPATH,'th')
-            elem_tds1 = elem_tr1.find_elements(By.XPATH,'td')   
-            #print(elem_th1.text,elem_tds1[3].text)
-            kakaku = elem_tds1[3].text
-            owarine_map[elem_th1.text]=float(kakaku.replace(',',''))   
-
-        #２日目以降
-        for elem_tr2 in elem_table2.find_elements(By.XPATH,'tbody/tr'):
-            elem_th2 = elem_tr2.find_element(By.XPATH,'th')
-            elem_tds2 = elem_tr2.find_elements(By.XPATH,'td')   
-            #print(elem_th2.text,elem_tds2[3].text)
-            kakaku = elem_tds2[3].text
-            owarine_map[elem_th2.text]=float(kakaku.replace(',',''))    
-        #print(dt.datetime.now())
-        return owarine_map
-    except:
-        return None
-
-
-#当日のmacdを取得
-def get_macdhist(code):
-    try:
-        ticker_symbol=code
-        ticker_symbol_dr=str(ticker_symbol) + ".T"
-
-        #2022-01-01以降の株価取得
-        start='2022-01-01'
-        end = dt.date.today()
-
-        #データ取得
-        df = web.DataReader(ticker_symbol_dr, data_source='yahoo', start=start,end=end)
-        #print(df)
-        #csv保存
-        #df.to_csv( os.path.dirname(__file__) + '\y_stock_data_'+ ticker_symbol + '.csv')
-        df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-        df[["Open", "High", "Low", "Close", "macd", "macdsignal"]].tail()
-        macdhist = df.iloc[-1,8]
-        return macdhist
-    except:
-        return None
-        
-
-#トレンド１が合格しているか
-def check_trend1(owarine_map):
-    date_list=list(owarine_map.keys())
-    date_list.sort(reverse=True)
-    #print(date_list)
-    one_kakaku = owarine_map[date_list[0]]
-    two_kakaku = owarine_map[date_list[1]]
-    three_kakaku = owarine_map[date_list[2]]
-    fore_kakaku = owarine_map[date_list[3]]
-    #print(one_kakaku)
-    if one_kakaku < two_kakaku:
-        return False
-    if one_kakaku < three_kakaku:
-        return False 
-    if one_kakaku < fore_kakaku:
-        return False 
-    return True    
-
-#トレンド２が合格しているか
-def check_trend2(owarine_map):
-    date_list=list(owarine_map.keys())
-    one_kakaku = owarine_map[date_list[0]]
-    date_list1 = list(owarine_map.values())
-    date_list25 = date_list1[:25]
-    mean25 = statistics.mean(date_list25)
-    #print(mean25)
-    if one_kakaku < mean25:
-        return False
-    return True          
-
-#ネックラインは合格か（当日を含まない過去５日間の終値ベースの高値を当日の終値で抜く）  
-def check_neckline(owarine_map):
-    date_list=list(owarine_map.keys())
-    date_list.sort(reverse=True)
-    #print(date_list)
-    one_kakaku = owarine_map[date_list[0]]
-    two_kakaku = owarine_map[date_list[1]]
-    three_kakaku = owarine_map[date_list[2]]
-    fore_kakaku = owarine_map[date_list[3]]
-    five_kakaku = owarine_map[date_list[4]]
-    six_kakaku = owarine_map[date_list[5]]
-    #print(one_kakaku)
-    if one_kakaku < two_kakaku:
-        return False
-    if one_kakaku < three_kakaku:
-        return False 
-    if one_kakaku < fore_kakaku:
-        return False 
-    if one_kakaku < five_kakaku:
-        return False 
-    if one_kakaku < six_kakaku:
-        return False 
-    return True    
-
-
-#モーメンタムは合格か（ＭＡＣＤヒストグラムがプラス）
-def check_macd(macdhist):
-    macd = macdhist
-    if macd < 0:
-        return False
-    return True
-
-
-#買いシグナルの判定
-def decision_buy(code):
-    owarine_map=get_owarine(code)
-    macd = get_macdhist(code)
-    margin_ratio = get_margin_ratio(code)
-    peg = get_peg(code)
-    if peg == None or peg>= 1.1:
-        print('PEGが'+str(peg)+'のため投資不可')
-        return False
-    if margin_ratio == None or margin_ratio >= 1:
-        print('信用倍率が'+str(margin_ratio)+'のため投資不可')
-        return False
-    if check_trend1(owarine_map)==False:
-        print('トレンド1に失敗')
-        return False
-    if check_trend2(owarine_map)==False:
-        print('トレンド2に失敗')
-        return False
-    if check_neckline(owarine_map)==False:
-        print('ネックライン失敗')
-        return False
-    if check_macd(macd) ==False:
-        print('macdに失敗')
-        return False
-    #print(code)
-    return True
-
-
-#銘柄名を取得
-def get_stock_name(code):
-    driver.get(f'https://kabutan.jp/stock/kabuka?code={code}')
-    div = driver.find_element(By.ID,'stockinfo_i0')
-    elem_table3= div.find_element(By.CLASS_NAME, "si_i1_1")
-
-    for elem_h2 in elem_table3.find_elements(By.XPATH,'h2'):
-        l = elem_h2.text
-        stock_name=(l[4:])
-        return stock_name
-
-
-# buy_lists =['1802']
-# for code in buy_lists:  
-#     if decision_buy(code)==True:
-#         for buy_list in buy_lists:
-#             buy_code_detail = []
-#             stock_name =get_stock_name(buy_list)
-#             buy_day = str(dt.date.today())
-#             now = dt.datetime.now()
-#             d = now.date().strftime('%y/%m/%d')#’ｎｏｗ’の日付の表記を変更
-#             buy_price = get_owarine(code)[d] 
-#             buy_code_detail.append(stock_name)
-#             buy_code_detail.append(buy_list) 
-#             buy_code_detail.append(buy_day)
-#             buy_code_detail.append(buy_price)
-            
-          
-      
-
-          
-#             print(buy_code_detail)
-          
-    
-   
-            
-interval = 1
-with open('./gold_list.csv')as f:
-     for s_line in f.readlines():
-         code = s_line.strip()
-         sleep(interval)
-         print(code)
-         if decision_buy(code)==True:
-            buy_lists = []
-            buy_lists.append(code)
-            for buy_list in buy_lists:
-                buy_code_detail = []
-                stock_name =get_stock_name(buy_list)
-                buy_day = str(dt.date.today())
-                now = dt.datetime.now()
-                d = now.date().strftime('%y/%m/%d')#’ｎｏｗ’の日付の表記を変更
-                buy_price = get_owarine(code)[d] 
-                buy_code_detail.append(stock_name)
-                buy_code_detail.append(buy_list) 
-                buy_code_detail.append(buy_day)
-                buy_code_detail.append(buy_price)
-            print(buy_code_detail)
-        
+# def execute_daisangen():
+#     buy_lists = daisangen.get_buy_lists()
 #     print(buy_lists)
+#     save_buy_lists()
+
+# def execute_gyakudaisagen():
+#     sell_lists=[]
+#     items = get_items()
+#     for item in items:
+#         code = item[1]
+#         if gyakudaisangen.failure_decision_buy(code)==True:
+#             sell_lists.append(code)
+#     print(items)
+ 
+def buy_code(day,code,price,num=100): 
+    db.add_trade_log(day,code,buy_price=price,buy_volume=num)
+    db.add_trading(day,code)
+
+def sell_code(day,code,price,num=100): 
+    db.add_trade_log(day,code,sell_price=price,sell_volume=num)
+    db.delete_trading(day,code)
+
+def get_code_list():
+    code_list =[]
+    #with open('./gold_list.csv')as f:
+    with open('./test_list.csv')as f:
+        for s_line in f.readlines():
+            code = s_line.strip()
+            code_list.append(code)
+        return code_list
+  
+def get_price(code):
+    owarine_map,_=crawler.stock_price_information(code) 
+    return owarine_map[0]
+             
+def main():
+    code_list = get_code_list()
+    for code in code_list:
+        print(code)
+        price = get_price(code)
+        buy_day = str(dt.date.today())
+        is_daisangen = daisangen.decision_buy(code)
+        is_gyakudaisangen = gyakudaisangen.failure_decision_buy(code)
+        db.add_daisangen_log(buy_day,code,is_daisangen,is_gyakudaisangen)
+        
+        if is_daisangen == True:
+            buy_code(buy_day,code,price,num=100)
+        
+        if is_gyakudaisangen == True:
+            sell_code(buy_day,code,price,num=100)
+            
+
+if __name__=='__main__':
+    main()
+
+   
+
+   
  
        
 
