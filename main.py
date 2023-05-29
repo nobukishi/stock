@@ -50,6 +50,7 @@ import crawler
 def buy_code(day,code,price,num=100): 
     db.add_trade_log(day,code,buy_price=price,buy_volume=num)
     db.add_trading(day,code)
+    db.delete_trading(day,code)
 
 def sell_code(day,code,price,num=100): 
     db.add_trade_log(day,code,sell_price=price,sell_volume=num)
@@ -57,31 +58,39 @@ def sell_code(day,code,price,num=100):
 
 def get_code_list():
     code_list =[]
-    #with open('./gold_list.csv')as f:
-    with open('./test_list.csv')as f:
+    with open('./gold_list.csv')as f:
+    #with open('./test_list.csv')as f:
         for s_line in f.readlines():
             code = s_line.strip()
             code_list.append(code)
         return code_list
   
-def get_price(code):
-    owarine_map,_=crawler.stock_price_information(code) 
+def get_price(code) -> int:
+    owarine_map,mean25=crawler.stock_price_information(code) 
+    print(owarine_map)
     return owarine_map[0]
+
+def stock_name(code):
+    stock_name = crawler.get_stock_name(code)
+    return stock_name
+
+
              
 def main():
     code_list = get_code_list()
     for code in code_list:
         print(code)
+        #name = stock_name(code)
         price = get_price(code)
         buy_day = str(dt.date.today())
         is_daisangen = daisangen.decision_buy(code)
         is_gyakudaisangen = gyakudaisangen.failure_decision_buy(code)
-        db.add_daisangen_log(buy_day,code,is_daisangen,is_gyakudaisangen)
+        db.add_daisangen_log(buy_day,code,is_daisangen,is_gyakudaisangen,price)
         
         if is_daisangen == True:
             buy_code(buy_day,code,price,num=100)
         
-        if is_gyakudaisangen == True:
+        if is_gyakudaisangen == True and db.has_stock(code):
             sell_code(buy_day,code,price,num=100)
             
 
